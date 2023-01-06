@@ -1,0 +1,9 @@
+Population Latitude Longitude
+Algeria 36.7538 3.0588
+Algeria_BER 29.2617 0.2416
+Morocco_ERR_BER 31.9272 -4.4285
+Morocco_TIZ_BER 29.6934 -9.7322
+Tunisia_Chen_BER 32.9146 10.2782
+Tunisia_Sen_BER 34.5389 9.2508
+Egypt 26.8206 30.8025
+Libya 26.3351 17.2283

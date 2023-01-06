@@ -1,0 +1,32 @@
+
+url_sgdp: https://sharehost.hms.harvard.edu/genetics/reich_lab/sgdp/vcf_variants/vcfs.variants.public_samples.279samples.tar
+url_metadata_sgdp: https://sharehost.hms.harvard.edu/genetics/reich_lab/sgdp/SGDP_metadata.279public.21signedLetter.44Fan.samples.txt
+url_hollfelder: http://jakobssonlab.iob.uu.se/data_Jakobssonlab/Hollfelder_etal_PLOSGEN.tar.gz
+url_arauna_bim: https://figshare.com/ndownloader/files/5688429
+url_arauna_bed: https://figshare.com/ndownloader/files/5688426
+url_arauna_fam: https://figshare.com/ndownloader/files/5688432
+url_hg38_fasta: ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa
+url_hg19_to_hg38_chain: https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.gz
+populations_of_interest_sgdp: [Spanish, Jordanian, Iranian, Iraqi_Jew, Mozabite, Saharawi, Gambian, Mandenka, 
+                               Mende, Esan, Biaka, Mbuti, Luhya, Somali, BantuKenya, Khomani_San, BantuTswana,
+                               Yemenite_Jew, Turkish, Tuscan]
+plink_prefix_tishkoff: tishkoff.imputed.autosome.flip
+ethnographics_tishkoff: ethnographics.dms
+geo_coords_tishkoff: 1M_5M_sample_info.csv
+populations_to_exclude_hollfelder: [Dinka]
+geo_coords_hollfelder: coordinates_hollfelder_et_al.csv
+geo_coords_arauna: coordinates_arauna_et_al.txt
+plink_prefix_fortes_lima: Fortes-Lima_et_al_MBE_2022
+geo_coords_fortes_lima: coordinates_fortes_lima_et_al.txt
+
+data_path: data/
+results_path: results/
+
+bcftools_path: bcftools
+samples_downsampling: 2
+maf: 0.05
+geno: 0.1
+max_r2: 0.05
+min_K: 2
+max_K: 15
+K_to_plot: 4 # do grep CV {results_path}/{prefix}.*.log to find best K

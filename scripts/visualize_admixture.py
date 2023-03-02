@@ -112,7 +112,7 @@ def get_best_k_and_plot_best_k(qfiles, Kvals, fam, log_dir, colors, path_to_coor
     # get order of idnviduals
     individual_order = df_sorted.index.values
     plot_best_k(df_sorted, best_k, min(cv_error), colors, prefix)
-    plot_krigin_best_k(df, best_k, path_to_coords, vmin, colors, prefix)
+    # plot_krigin_best_k(df, best_k, path_to_coords, vmin, colors, prefix)
     return individual_order, cv_error
 
 
@@ -229,7 +229,7 @@ def plot_best_k(df, K, cv, colors, prefix):
         prev_k.append(i)
     # formatting
     ax.set_yticks(y_ticks)
-    ax.set_yticklabels(y_labels, fontsize=4)
+    ax.set_yticklabels([x.replace('Sabue', 'Chabu') for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.invert_yaxis()
@@ -314,7 +314,7 @@ def plot_admixture_proportions(df, K, ax, cv, colors, min_k, best_k=False):
         ax.set_yticks([])
     else:
         ax.set_yticks(y_ticks)
-        ax.set_yticklabels(y_labels, fontsize=5)
+        ax.set_yticklabels([x.replace('Sabue', 'Chabu') for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.invert_yaxis()

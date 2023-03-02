@@ -1,0 +1,19 @@
+	Country	Population	Population label	N	Latitude	Longitude	Reference	Lifestyle	Linguistic affiliation	Data accession number	SNP Array
+	Sudan	ArabBataheen	Sudan_ArabBataheen	10	15.8968	33.8162	Hollfelder et al. 2017	Pastoralists	Afro-Asiatic, Semitic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	ArabGaalien	Sudan_ArabGaalien	14	16.6833	33.4333	Hollfelder et al. 2017	Pastoralists	Afro-Asiatic, Semitic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	ArabShaigia	Sudan_ArabShaigia	12	18.5682	31.8631	Hollfelder et al. 2017	Pastoralists	Afro-Asiatic, Semitic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	ArabMessiria	Sudan_ArabMessiria	8	12.4543	27.4186	Hollfelder et al. 2017	Pastoralists	Afro-Asiatic, Semitic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Beja (BeniAmer)	Sudan_BeniAmer	16	15.4500	36.4000	Hollfelder et al. 2017	Pastoralists	Afro-Asiatic, Cushitic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Hadendowa	Sudan_Hadendowa	11	19.6167	37.2167	Hollfelder et al. 2017	Pastoralists	Afro-Asiatic, Cushitic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Copts	Sudan_Copt	14	15.5501	32.5322	Hollfelder et al. 2017	Farmers	Afro-Asiatic, Ancient Egyptian	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Hausa	Sudan_Hausa	5	14.0333	35.3833	Hollfelder et al. 2017	Farmers	Afro-Asiatic, Chadic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Nuba	Sudan_Nuba	16	11.0167	29.7167	Hollfelder et al. 2017	Farmers	Nilo-Saharan and Niger-Congo, Eastern Sudanic and Kordofanian	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Danagla	Sudan_Danagla	15	19.1695	30.4742	Hollfelder et al. 2017	Farmers	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Mahas	Sudan_Mahas	15	19.6008	30.4097	Hollfelder et al. 2017	Farmers	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Halfawieen	Sudan_Halfawieen	11	21.7833	31.3667	Hollfelder et al. 2017	Farmers	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Dinka	Sudan_Dinka	16	9.5300	31.6555	Hollfelder et al. 2017	Pastoralists	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Nuer	Sudan_Nuer	15	9.2333	29.8333	Hollfelder et al. 2017	Pastoralists	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Shilluk	Sudan_Shilluk	16	9.5300	31.6555	Hollfelder et al. 2017	Pastoralists	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Baria	Sudan_Baria	5	4.8500	31.6000	Hollfelder et al. 2017	Farmers	Nilo-Saharan, Eastern Sudanic	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Zagawa	Sudan_Zagawa	15	13.4500	22.4500	Hollfelder et al. 2017	Pastoralists	Nilo-Saharan, Saharan	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome
+	Sudan	Gemar	Sudan_Gemar	7	12.0500	24.8833	Hollfelder et al. 2017	-	Nilo-Saharan, Saharan	Dryad doi: 10.5061/dryad.bs06h	Illumina Human Omni5MExome

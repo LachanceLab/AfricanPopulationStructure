@@ -1,0 +1,15 @@
+Population Latitude Longitude
+Chad_ArabBaggara 13.1798 17.9542
+Chad_Dangaleat 12.1553 18.5189
+Chad_Daza 18.1770 20.5518
+Chad_Maba 13.8607 20.8338
+Chad_Zaghawa 14.4161 21.4128
+Guinea_Fulani 11.1233 -12.4999
+Senegal_Bedik 12.5390 -12.3102
+Senegal_Halpularen 16.5086 -14.2210
+Sudan_ArabBaggara 11.5323 28.3487
+Sudan_ArabKababish 16.1333 30.7462
+Sudan_ArabRashaayda 15.3491 36.3038
+Sudan_Daju 12.7381 24.3452
+Sudan_NubaKoalib 11.8837 29.9299
+Sudan_Zaghawa 13.0521 23.5103

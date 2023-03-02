@@ -1,4 +1,5 @@
 
+url_clumpak: http://clumpak.tau.ac.il/download/CLUMPAK.zip
 url_sgdp: https://sharehost.hms.harvard.edu/genetics/reich_lab/sgdp/vcf_variants/vcfs.variants.public_samples.279samples.tar
 url_metadata_sgdp: https://sharehost.hms.harvard.edu/genetics/reich_lab/sgdp/SGDP_metadata.279public.21signedLetter.44Fan.samples.txt
 url_hollfelder: http://jakobssonlab.iob.uu.se/data_Jakobssonlab/Hollfelder_etal_PLOSGEN.tar.gz
@@ -10,11 +11,10 @@ url_hg19_to_hg38_chain: https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver
 populations_of_interest_sgdp: [Spanish, Jordanian, Iranian, Iraqi_Jew, Mozabite, Saharawi, Gambian, Mandenka, 
                                Mende, Esan, Biaka, Mbuti, Luhya, Somali, BantuKenya, Khomani_San, BantuTswana,
                                Yemenite_Jew, Turkish, Tuscan]
-plink_prefix_tishkoff: tishkoff.imputed.autosome.flip
-ethnographics_tishkoff: ethnographics.dms
-geo_coords_tishkoff: 1M_5M_sample_info.csv
+plink_prefix_crawford_and_scheinfeldt: tishkoff.imputed.autosome.flip
+geo_coords_crawford_and_scheinfeldt: coordinates_crawford_et_al_and_scheinfeldt_et_al.txt
 populations_to_exclude_hollfelder: [Dinka]
-geo_coords_hollfelder: coordinates_hollfelder_et_al.csv
+geo_coords_hollfelder: coordinates_hollfelder_et_al.txt
 geo_coords_arauna: coordinates_arauna_et_al.txt
 plink_prefix_fortes_lima: Fortes-Lima_et_al_MBE_2022
 geo_coords_fortes_lima: coordinates_fortes_lima_et_al.txt
@@ -29,4 +29,3 @@ geno: 0.1
 max_r2: 0.05
 min_K: 2
 max_K: 15
-K_to_plot: 4 # do grep CV {results_path}/{prefix}.*.log to find best K

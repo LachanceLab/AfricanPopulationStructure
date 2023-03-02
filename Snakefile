@@ -1,6 +1,7 @@
 import numpy as np
 
 configfile: "config/config.yaml"
+url_clumpak = config['url_clumpak']
 url_sgdp = config['url_sgdp']
 url_metadata_sgdp = config['url_metadata_sgdp']
 url_hg19_to_hg38_chain = config["url_hg19_to_hg38_chain"]
@@ -14,9 +15,8 @@ populations_of_interest_sgdp = config['populations_of_interest_sgdp']
 populations_to_exclude_hollfelder = config['populations_to_exclude_hollfelder']
 data_path =  config["data_path"]
 results_path = config['results_path']
-plink_prefix_tishkoff = config['plink_prefix_tishkoff']
-tishkoff_ethnographics = config['ethnographics_tishkoff']
-geo_coords_tishkoff = config['geo_coords_tishkoff']
+plink_prefix_crawford_and_scheinfeldt = config['plink_prefix_crawford_and_scheinfeldt']
+geo_coords_crawford_and_scheinfeldt = config['geo_coords_crawford_and_scheinfeldt']
 geo_coords_hollfelder = config['geo_coords_hollfelder']
 plink_prefix_fortes_lima = config['plink_prefix_fortes_lima']
 geo_coords_fortes_lima = config['geo_coords_fortes_lima']
@@ -25,18 +25,28 @@ maf = config['maf'] # minor allele frequency
 geno = config['geno'] # max missing genotype rate per variant
 max_r2 = config['max_r2']
 K = np.arange(config['min_K'], config['max_K'] + 1)
-K_to_plot = config['K_to_plot']
 bcftools_path = config['bcftools_path']
 
 chromosomes = np.arange(1, 23)
 
 rule all:
     input:
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot.pdf",
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_pca.png",
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot_k" + str(K_to_plot) + ".pdf",
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_feems_plot.pdf",
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_kriging_k" + str(K_to_plot) + ".pdf"
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_pca.png",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_feems_plot.pdf",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plots.pdf",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot_best_K.pdf",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_kriging_best_K.pdf"
+
+rule download_and_install_clumpak:
+    output:
+        directory(url_clumpak.split('/')[-1].split('.zip')[0])
+    params:
+        url = url_clumpak,
+        zip = url_clumpak.split('/')[-1]
+    shell:
+        "wget -q {params.url}; unzip {params.zip}; rm {params.zip}; mv {output} {output}_tmp; "
+        "unzip -d {output}_tmp {output}_tmp/26_03_2015_CLUMPAK.zip; mv {output}_tmp/26_03_2015_CLUMPAK/CLUMPAK .;"
+        "rm -r {output}_tmp; chmod +x {output}/distruct/*; chmod +x {output}/CLUMPP/*; chmod +x {output}/mcl/*"
 
 rule download_sgdp_vcfs:
     output:
@@ -90,7 +100,7 @@ rule convert_vcf_to_plink_sgdp:
     input:
         ancient(data_path + 'SGDP/ALL.vcf.gz')
     output:
-        multiext(data_path + 'SGDP/ALL', ".bed", ".bim", ".fam"),
+        multiext(data_path + 'SGDP/ALL', ".bed", ".bim", ".fam")
     conda:
         "envs/plink.yaml"
     params:
@@ -180,62 +190,50 @@ rule downsample_sgdp:
     shell:
         "plink2 --bfile {params.input_base} --keep {input[0]} --make-bed --out {params.output_base} --threads {threads}"
 
-def get_params_get_samples_with_geo_data_available_tishkoff(wildcards):
-    samples = []
-    with open(data_path + geo_coords_tishkoff, "r") as geo:
-        for line in geo:
-            samples.append(line.split('\t')[0])
-    geo.close()
-    return "|".join(samples)
 
-rule get_samples_with_geo_data_available_tishkoff:
+rule get_samples_with_geo_data_available_crawford_and_scheinfeldt:
     input:
-        ethnographics=data_path + tishkoff_ethnographics,
-        coords=data_path + geo_coords_tishkoff
+        coords=data_path + geo_coords_crawford_and_scheinfeldt
     output:
-        ethnographics=data_path + "ethnographics_intersections.tab",
-        to_keep=temp("tishkoff_geo_data_avail.tab")
-    params:
-        samples=get_params_get_samples_with_geo_data_available_tishkoff
+        to_keep=temp("crawford_and_scheinfeldt_geo_data_avail.tab")
     shell:
-        "grep -E \"{params.samples}\" {input.ethnographics} > {output.ethnographics}; "
-        "cut -f1,2 {output.ethnographics} > {output.to_keep}"
+        "cut -f1,2 {input.coords} > {output.to_keep}"
 
-rule remove_samples_without_geo_data_tishkoff:
+rule remove_samples_without_geo_data_crawford_and_scheinfeldt:
     input:
-        keep="tishkoff_geo_data_avail.tab",
-        fam=data_path + plink_prefix_tishkoff + ".fam",
+        keep="crawford_and_scheinfeldt_geo_data_avail.tab",
+        fam=data_path + plink_prefix_crawford_and_scheinfeldt + ".fam"
     output:
-        temp(multiext(data_path + plink_prefix_tishkoff + "_geo_avail",".bed",".fam",".bim"))
+        temp(multiext(data_path + plink_prefix_crawford_and_scheinfeldt + "_geo_avail",".bed",".fam",".bim"))
     params:
-        input_base = data_path + plink_prefix_tishkoff,
-        output_base = data_path + plink_prefix_tishkoff + "_geo_avail"
+        input_base = data_path + plink_prefix_crawford_and_scheinfeldt,
+        output_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_geo_avail"
     threads: 32
     conda:
         "envs/plink.yaml"
     shell:
         "plink2 --bfile {params.input_base} --keep {input.keep} --make-bed --out {params.output_base} --threads {threads}"
 
-rule get_updated_fids_tishkoff:
+rule get_updated_fids_crawford_and_scheinfeldt:
     input:
-        fam=data_path + plink_prefix_tishkoff + "_geo_avail.fam",
-        meta=data_path + tishkoff_ethnographics
+        fam=data_path + plink_prefix_crawford_and_scheinfeldt + "_geo_avail.fam",
+        meta=data_path + geo_coords_crawford_and_scheinfeldt
     output:
-        temp("updated_fids_tishkoff.tab")
+        temp("updated_fids_crawford_and_scheinfeldt.tab")
     shell:
         "cut -f2 {input.fam} | xargs -I {{}} grep {{}} {input.meta} | "
-        "awk -F \"\\t\" 'BEGIN{{OFS=\"\\t\"}}{{print $6, $2}}' | sed -e 's/\///g' | "
+        "awk -F \"\\t\" 'BEGIN{{OFS=\"\\t\"}}{{print $3, $2}}' | sed -e 's/\///g' | "
         "paste <(cut -f1,2 {input.fam} | sed 's/\\s/\\t/g') - > {output}"
 
-rule update_fids_tishkoff:
+rule update_fids_crawford_and_scheinfeldt:
     input:
-        ids="updated_fids_tishkoff.tab",
-        fam=multiext(data_path+ plink_prefix_tishkoff + "_geo_avail", ".bed", ".bim", ".fam")
+        ids="updated_fids_crawford_and_scheinfeldt.tab",
+        fam=multiext(data_path+ plink_prefix_crawford_and_scheinfeldt + "_geo_avail", ".bed", ".bim", ".fam")
     output:
-        temp(multiext(data_path + plink_prefix_tishkoff + "_updated_fids", ".bed", ".fam", ".bim"))
+        temp(multiext(data_path + plink_prefix_crawford_and_scheinfeldt + "_updated_fids", ".bed", ".fam", ".bim"))
     params:
-        input_base=data_path + plink_prefix_tishkoff + "_geo_avail",
-        output_base=data_path + plink_prefix_tishkoff + "_updated_fids"
+        input_base=data_path + plink_prefix_crawford_and_scheinfeldt + "_geo_avail",
+        output_base=data_path + plink_prefix_crawford_and_scheinfeldt + "_updated_fids"
     threads: 32
     conda:
         "envs/plink.yaml"
@@ -243,33 +241,34 @@ rule update_fids_tishkoff:
         "plink2 --bfile {params.input_base} --update-ids {input.ids} --make-bed --threads {threads} "
         "--out {params.output_base}"
 
-rule select_samples_tishkoff:
+rule select_samples_crawford_and_scheinfeldt:
     input:
-        samples = "updated_fids_tishkoff.tab"
+        samples = "updated_fids_crawford_and_scheinfeldt.tab"
     output:
-        temp(data_path + "tishkoff_sampled.tab"),
+        temp(data_path + "crawford_and_scheinfeldt_sampled.tab")
     params:
-        samples = "updated_fids_tishkoff.tab",
-        n_samples=samples_downsampling,
+        samples = "updated_fids_crawford_and_scheinfeldt.tab",
+        n_samples=samples_downsampling
     shell:
         "cat {input.samples} | sed -e 's/\///g' -e 's/|/|\\\/' | "
         "cut -f3 | sort | uniq | xargs -I {{}} bash -c \"grep -w \\\"{{}}\\\" <( cat {input.samples} | sed -e 's/\///g') | "
         "shuf -n {params.n_samples} | cut -f3,4 >> {output}\" sh"
 
-rule downsample_tishkoff:
+rule downsample_crawford_and_scheinfeldt:
     input:
-        samples=data_path + "tishkoff_sampled.tab",
-        bed=multiext(data_path + plink_prefix_tishkoff + "_updated_fids", ".bed", ".bim", ".fam")
+        samples=data_path + "crawford_and_scheinfeldt_sampled.tab",
+        bed=multiext(data_path + plink_prefix_crawford_and_scheinfeldt + "_updated_fids", ".bed", ".bim", ".fam")
     output:
-        multiext(data_path + plink_prefix_tishkoff + "_downsampled", ".bed", ".bim", ".fam")
+        multiext(data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled", ".bed", ".bim", ".fam")
     params:
-        input_base = data_path + plink_prefix_tishkoff + "_updated_fids",
-        output_base = data_path + plink_prefix_tishkoff + "_downsampled"
+        input_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_updated_fids",
+        output_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled"
     conda:
         "envs/plink.yaml"
     threads: 32
     shell:
-        "plink2 --bfile {params.input_base} --keep {input.samples} --make-bed --out {params.output_base} --threads {threads}"
+        "plink2 --bfile {params.input_base} --keep {input.samples} --make-bed --out {params.output_base} "
+        "--threads {threads}"
 
 rule download_hollfelder_data:
     output:
@@ -339,7 +338,8 @@ rule remove_duplicate_vars_hollfelder:
     conda:
         "envs/plink.yaml"
     shell:
-        "plink2 --bfile {params.input_base} --exclude {input.ids} --make-bed --out {params.outputbase} --threads {threads}"
+        "plink2 --bfile {params.input_base} --exclude {input.ids} --make-bed --out {params.outputbase} "
+        "--threads {threads}"
 
 rule download_arauna:
     output:
@@ -406,64 +406,66 @@ use rule extract_samples_arauna as extract_samples_fortes_lima with:
         output_base=data_path + plink_prefix_fortes_lima + '_downsampled'
     threads: 32
 
-rule get_variants_tishkoff:
+rule get_variants_crawford_and_scheinfeldt:
     input:
-        data_path + plink_prefix_tishkoff + "_downsampled.bim"
+        data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled.bim"
     output:
-        temp("snps_tishkoff.txt")
+        temp("snps_crawford_and_scheinfeldt.txt")
     shell:
         "cut -f2 {input} | sort > {output}"
 
-use rule get_variants_tishkoff as get_variants_sgdp with:
+use rule get_variants_crawford_and_scheinfeldt as get_variants_sgdp with:
     input:
         data_path + "SGDP/downsampled_updated_ids.bim"
     output:
         temp("snps_sgdp.txt")
 
-rule intersect_variants_sgdp_tishkoff:
+rule intersect_variants_sgdp_crawford_and_scheinfeldt:
     input:
-        "snps_tishkoff.txt",
+        "snps_crawford_and_scheinfeldt.txt",
         "snps_sgdp.txt"
     output:
-        temp("intersection_snps_sgdp_tishkoff.txt")
+        temp("intersection_snps_sgdp_crawford_and_scheinfeldt.txt")
     shell:
         "comm -12 {input} > {output}"
 
-rule extract_shared_snps_tishkoff:
+rule extract_shared_snps_crawford_and_scheinfeldt:
     input:
-        bed=data_path + plink_prefix_tishkoff + "_downsampled.bed",
-        snps="intersection_snps_sgdp_tishkoff.txt"
+        bed=data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled.bed",
+        snps="intersection_snps_sgdp_crawford_and_scheinfeldt.txt"
     output:
-        temp(multiext(data_path + plink_prefix_tishkoff + "_downsampled_intersected_snps", ".bed", ".bim", ".fam"))
+        temp(multiext(data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled_intersected_snps",
+            ".bed", ".bim", ".fam"))
     params:
-        input_base = data_path + plink_prefix_tishkoff + "_downsampled",
-        output_base = data_path + plink_prefix_tishkoff + "_downsampled_intersected_snps"
+        input_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled",
+        output_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled_intersected_snps"
     threads: 32
     conda:
         "envs/plink.yaml"
     shell:
         "plink2 --bfile {params.input_base} --extract {input.snps} --make-bed --out {params.output_base}"
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_sgdp with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_sgdp with:
     input:
         bed = data_path + "SGDP/downsampled_updated_ids.bed",
-        snps = "intersection_snps_sgdp_tishkoff.txt"
+        snps = "intersection_snps_sgdp_crawford_and_scheinfeldt.txt"
     output:
         temp(multiext(data_path + "SGDP/downsampled_updated_ids_intersected_snps",".bed",".bim",".fam"))
     params:
         input_base=data_path + "SGDP/downsampled_updated_ids",
         output_base=data_path + "SGDP/downsampled_updated_ids_intersected_snps"
 
-rule merge_tishkoff_and_sgdp_data:
+rule merge_crawford_and_scheinfeldt_and_sgdp_data:
     input:
-        multiext(data_path + plink_prefix_tishkoff + "_downsampled_intersected_snps", ".bed", ".bim", ".fam"),
+        multiext(data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled_intersected_snps",
+            ".bed", ".bim", ".fam"),
         multiext(data_path + "SGDP/downsampled_updated_ids_intersected_snps", ".bed", ".bim", ".fam")
     output:
-        temp(multiext(data_path + "tishkoff_sgdp_merged", ".bim", ".bed", ".fam"))
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_merged", ".bim", ".bed", ".fam"))
     params:
-        base_a = data_path + plink_prefix_tishkoff + "_downsampled_intersected_snps",
+        base_a = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled_intersected_snps",
         base_b = data_path + "SGDP/downsampled_updated_ids_intersected_snps",
-        output_base = data_path + "tishkoff_sgdp_merged",
+        output_base = data_path + "crawford_and_scheinfeldt_sgdp_merged",
         maf = maf,
         geno = geno
     conda:
@@ -503,9 +505,9 @@ rule merge_tishkoff_and_sgdp_data:
 
 rule get_at_cg_snps_merged:
     input:
-        data_path + "tishkoff_sgdp_merged.bim"
+        data_path + "crawford_and_scheinfeldt_sgdp_merged.bim"
     output:
-        temp("at_gc_snps_merged_tishkoff_sgdp.txt")
+        temp("at_gc_snps_merged_crawford_and_scheinfeldt_sgdp.txt")
     shell:
         "awk -F '\\t' '{{if ($5 == \"A\" && $6 != \"T\" || $5 != \"A\") print $0}}' {input} | "
         "awk -F '\\t' '{{if ($5 == \"T\" && $6 != \"A\" || $5 != \"T\") print $0}}' | "
@@ -514,18 +516,19 @@ rule get_at_cg_snps_merged:
 
 rule filter_at_cg_snps_merged:
     input:
-        "at_gc_snps_merged_tishkoff_sgdp.txt",
-        multiext(data_path+ "tishkoff_sgdp_merged", ".bed", ".bim", ".fam")
+        "at_gc_snps_merged_crawford_and_scheinfeldt_sgdp.txt",
+        multiext(data_path+ "crawford_and_scheinfeldt_sgdp_merged", ".bed", ".bim", ".fam")
     output:
-        temp(multiext(data_path+ "tishkoff_sgdp_merged_filtered_at_cg", ".bed", ".bim", ".fam"))
+        temp(multiext(data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg", ".bed", ".bim", ".fam"))
     params:
-        input_base = data_path+ "tishkoff_sgdp_merged",
-        output_base = data_path+ "tishkoff_sgdp_merged_filtered_at_cg"
+        input_base = data_path+ "crawford_and_scheinfeldt_sgdp_merged",
+        output_base = data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg"
     threads: 32
     conda:
         "envs/plink.yaml"
     shell:
-        "plink2 --bfile {params.input_base} --extract {input[0]} --make-bed --out {params.output_base} --threads {threads}"
+        "plink2 --bfile {params.input_base} --extract {input[0]} --make-bed --out {params.output_base} "
+        "--threads {threads}"
 
 rule get_positions_with_missing_ref_alt_allele_hollfelder:
     input:
@@ -544,48 +547,50 @@ rule get_snps_hollfelder:
     shell:
         "grep -v -w -f {input.exclude} {input.bim} | cut -f2 | sort > {output}"
 
-rule intersect_snps_sgdp_tishkoff_and_hollfelder:
+rule intersect_snps_sgdp_crawford_and_scheinfeldt_and_hollfelder:
     input:
         "snps_hollfelder.txt",
-        "at_gc_snps_merged_tishkoff_sgdp.txt"
+        "at_gc_snps_merged_crawford_and_scheinfeldt_sgdp.txt"
     output:
-        temp("intersection_snps_tishkoff_sgdp_hollfelder.txt")
+        temp("intersection_snps_crawford_and_scheinfeldt_sgdp_hollfelder.txt")
     shell:
         "comm -12 {input} > {output}"
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_tishkoff_sgdp with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_crawford_and_scheinfeldt_sgdp with:
     input:
-        plink = multiext(data_path+ "tishkoff_sgdp_merged_filtered_at_cg", ".bed", ".bim", ".fam"),
-        snps = "intersection_snps_tishkoff_sgdp_hollfelder.txt"
+        plink = multiext(data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg", ".bed", ".bim", ".fam"),
+        snps = "intersection_snps_crawford_and_scheinfeldt_sgdp_hollfelder.txt"
     output:
-        temp(multiext(data_path+ "tishkoff_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder",
+        temp(multiext(data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder",
                       ".bed",".bim",".fam"))
     params:
-        input_base=data_path+ "tishkoff_sgdp_merged_filtered_at_cg",
-        output_base=data_path+ "tishkoff_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder"
+        input_base=data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg",
+        output_base=data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder"
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_hollfelder with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_hollfelder with:
     input:
         bed = data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars.bed",
-        snps = "intersection_snps_tishkoff_sgdp_hollfelder.txt"
+        snps = "intersection_snps_crawford_and_scheinfeldt_sgdp_hollfelder.txt"
     output:
-        temp(multiext(data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_tishkoff_sgdp",
+        temp(multiext(data_path +
+                      "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_crawford_and_scheinfeldt_sgdp",
                       ".bed",".bim",".fam"))
     params:
         input_base=data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars",
-        output_base=data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_tishkoff_sgdp"
+        output_base=data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_crawford_and_scheinfeldt_sgdp"
 
-use rule merge_tishkoff_and_sgdp_data as merge_tishkoff_sgdp_and_hollfelder_data with:
+use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_scheinfeldt_sgdp_and_hollfelder_data with:
     input:
-        multiext(data_path+ "tishkoff_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder", ".bed", ".bim", ".fam"),
-        multiext(data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_tishkoff_sgdp",
+        multiext(data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder",
+                 ".bed", ".bim", ".fam"),
+        multiext(data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_crawford_and_scheinfeldt_sgdp",
                  ".bed", ".bim", ".fam")
     output:
-        temp(multiext(data_path + "tishkoff_sgdp_hollfelder_merged", ".bim", ".bed", ".fam"))
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged", ".bim", ".bed", ".fam"))
     params:
-        base_a = data_path+ "tishkoff_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder",
-        base_b = data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_tishkoff_sgdp",
-        output_base = data_path + "tishkoff_sgdp_hollfelder_merged",
+        base_a = data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg_intersected_snps_hollfelder",
+        base_b = data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars_intersected_snps_crawford_and_scheinfeldt_sgdp",
+        output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged",
         maf= maf,
         geno= geno
     threads: 32
@@ -598,55 +603,57 @@ rule get_snps_arauna:
     shell:
         'cut -f2 {input} | sort > {output}'
 
-rule get_snps_tishkoff_sgdp_hollfelder_merged:
+rule get_snps_crawford_and_scheinfeldt_sgdp_hollfelder_merged:
     input:
-        data_path + "tishkoff_sgdp_hollfelder_merged.bim"
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged.bim"
     output:
-        temp('snps_tishkoff_sgdp_hollfelder_merged.txt')
+        temp('snps_crawford_and_scheinfeldt_sgdp_hollfelder_merged.txt')
     shell:
         'cut -f2 {input} | sort > {output}'
 
-rule intersect_snps_arauna_and_tishkoff_sgdp_hollfelder_merged:
+rule intersect_snps_arauna_and_crawford_and_scheinfeldt_sgdp_hollfelder_merged:
     input:
         'snps_arauna.txt',
-        'snps_tishkoff_sgdp_hollfelder_merged.txt'
+        'snps_crawford_and_scheinfeldt_sgdp_hollfelder_merged.txt'
     output:
-        temp('intersect_snps_arauna_and_tishkoff_sgdp_hollfelder_merged.txt')
+        temp('intersect_snps_arauna_and_crawford_and_scheinfeldt_sgdp_hollfelder_merged.txt')
     shell:
         "comm -12 {input} > {output}"
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_arauna_and_tishkoff_sgdp_hollfelder with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_arauna_and_crawford_and_scheinfeldt_sgdp_hollfelder with:
     input:
         bed = data_path + "arauna_et_al_2017_downsampled.bed",
-        snps = 'intersect_snps_arauna_and_tishkoff_sgdp_hollfelder_merged.txt'
+        snps = 'intersect_snps_arauna_and_crawford_and_scheinfeldt_sgdp_hollfelder_merged.txt'
     output:
-        temp(multiext(data_path + "arauna_et_al_2017_downsampled_intersected_snps_tishkoff_sgdp_hollfelder",
-             ".bed",".bim",".fam"))
+        temp(multiext(data_path +
+                      "arauna_et_al_2017_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder",
+                      ".bed",".bim",".fam"))
     params:
         input_base=data_path + "arauna_et_al_2017_downsampled",
-        output_base=data_path + "arauna_et_al_2017_downsampled_intersected_snps_tishkoff_sgdp_hollfelder"
+        output_base=data_path + "arauna_et_al_2017_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder"
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_tishkoff_sgdp_hollfelder_and_arauna with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_crawford_and_scheinfeldt_sgdp_hollfelder_and_arauna with:
     input:
-        plink = multiext(data_path + "tishkoff_sgdp_hollfelder_merged", ".bim", ".bed", ".fam"),
-        snps = 'intersect_snps_arauna_and_tishkoff_sgdp_hollfelder_merged.txt'
+        plink = multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged", ".bim", ".bed", ".fam"),
+        snps = 'intersect_snps_arauna_and_crawford_and_scheinfeldt_sgdp_hollfelder_merged.txt'
     output:
-        temp(multiext(data_path + "tishkoff_sgdp_hollfelder_merged_intersected_snps_arauna",".bed",".bim",".fam"))
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged_intersected_snps_arauna",
+             ".bed",".bim",".fam"))
     params:
-        input_base=data_path + "tishkoff_sgdp_hollfelder_merged",
-        output_base=data_path + "tishkoff_sgdp_hollfelder_merged_intersected_snps_arauna"
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged",
+        output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged_intersected_snps_arauna"
 
-use rule merge_tishkoff_and_sgdp_data as merge_tishkoff_sgdp_hollfelder_and_arauna_data with:
+use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_scheinfeldt_sgdp_hollfelder_and_arauna_data with:
     input:
-        multiext(data_path + "tishkoff_sgdp_hollfelder_merged_intersected_snps_arauna", ".bed", ".bim", ".fam"),
-        multiext(data_path + "arauna_et_al_2017_downsampled_intersected_snps_tishkoff_sgdp_hollfelder",
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged_intersected_snps_arauna", ".bed", ".bim", ".fam"),
+        multiext(data_path + "arauna_et_al_2017_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder",
                  ".bed", ".bim", ".fam")
     output:
-        temp(multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_merged", ".bim", ".bed", ".fam"))
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged", ".bim", ".bed", ".fam"))
     params:
-        base_a = data_path + "tishkoff_sgdp_hollfelder_merged_intersected_snps_arauna",
-        base_b = data_path + "arauna_et_al_2017_downsampled_intersected_snps_tishkoff_sgdp_hollfelder",
-        output_base = data_path + "tishkoff_sgdp_hollfelder_arauna_merged",
+        base_a = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged_intersected_snps_arauna",
+        base_b = data_path + "arauna_et_al_2017_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder",
+        output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged",
         maf= maf,
         geno= geno
     threads: 32
@@ -659,70 +666,75 @@ rule get_snps_fortes_lima:
     shell:
         "cut -f2 {input} | sort > {output}"
 
-rule get_snps_tishkoff_sgdp_hollfelder_arauna:
+rule get_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna:
     input:
-        data_path + "tishkoff_sgdp_hollfelder_arauna_merged.bim"
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged.bim"
     output:
-        temp("snps_tishkoff_sgdp_hollfelder_arauna_merged.txt")
+        temp("snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged.txt")
     shell:
         "cut -f2 {input} | sort > {output}"
 
-rule intersect_snps_tishkoff_sgdp_hollfelder_arauna_and_fortes_lima:
+rule intersect_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima:
     input:
-        "snps_tishkoff_sgdp_hollfelder_arauna_merged.txt",
+        "snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged.txt",
         "snps_fortes_lima.txt"
     output:
-        temp("intersected_snps_tishkoff_sgdp_hollfelder_arauna_and_fortes_lima.txt")
+        temp("intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima.txt")
     shell:
         "comm -12 {input} > {output}"
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_fortes_lima_and_tishkoff_sgdp_hollfelder_arauna with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_fortes_lima_and_crawford_and_scheinfeldt_sgdp_hollfelder_arauna with:
     input:
         bed = data_path + plink_prefix_fortes_lima + "_downsampled.bed",
-        snps = 'intersected_snps_tishkoff_sgdp_hollfelder_arauna_and_fortes_lima.txt'
+        snps = 'intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima.txt'
     output:
-        temp(multiext(data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_tishkoff_sgdp_hollfelder_arauna",
-                      ".bed",".bim",".fam"))
+        temp(multiext(data_path + plink_prefix_fortes_lima +
+                      "_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna",
+            ".bed",".bim",".fam"))
     params:
         input_base=data_path + plink_prefix_fortes_lima + "_downsampled",
-        output_base=data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_tishkoff_sgdp_hollfelder_arauna"
+        output_base=data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna"
     threads: 32
 
-use rule extract_shared_snps_tishkoff as extract_shared_snps_tishkoff_sgdp_hollfelder_arauna_and_fortes_lima with:
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima with:
     input:
-        plink = multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_merged", ".bim", ".bed", ".fam"),
-        snps = 'intersected_snps_tishkoff_sgdp_hollfelder_arauna_and_fortes_lima.txt'
+        plink = multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged", ".bim", ".bed", ".fam"),
+        snps = 'intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima.txt'
     output:
-        temp(multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
                       ".bed",".bim",".fam"))
     params:
-        input_base=data_path + "tishkoff_sgdp_hollfelder_arauna_merged",
-        output_base=data_path + "tishkoff_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima"
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged",
+        output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima"
     threads: 32
 
-use rule merge_tishkoff_and_sgdp_data as merge_tishkoff_sgdp_hollfelder_arauna_and_fortes_lima_data with:
+use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima_data with:
     input:
-        multiext(data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_tishkoff_sgdp_hollfelder_arauna",
+        multiext(data_path + plink_prefix_fortes_lima +
+                 "_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna",
                  ".bed", ".bim", ".fam"),
-        multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
                  ".bed", ".bim", ".fam")
     output:
-        multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged", ".bim", ".bed", ".fam")
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+                 ".bim", ".bed", ".fam")
     params:
-        base_a = data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_tishkoff_sgdp_hollfelder_arauna",
-        base_b = data_path + "tishkoff_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
-        output_base = data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged",
+        base_a = data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna",
+        base_b = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
+        output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
         maf= maf,
         geno= geno
     threads: 32
 
 rule find_snps_in_ld:
     input:
-        multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged", ".bed", ".bim", ".fam")
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+                 ".bed", ".bim", ".fam")
     output:
-        multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged", ".prune.in", ".prune.out",)
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+                 ".prune.in", ".prune.out",)
     params:
-        input_base=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged",
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
         max_r2 = max_r2
     conda:
         "envs/plink.yaml"
@@ -733,13 +745,14 @@ rule find_snps_in_ld:
 
 rule ld_prune:
     input:
-        extract=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged.prune.in",
-        bed=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged.bed"
+        extract=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.prune.in",
+        bed=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.bed"
     output:
-        multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned", ".bed", ".bim", ".fam")
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
+                 ".bed", ".bim", ".fam")
     params:
-        input_base=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged",
-        output_base=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+        output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
     conda:
         "envs/plink.yaml"
     threads: 32
@@ -749,11 +762,12 @@ rule ld_prune:
 
 rule perform_pca:
     input:
-        data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
     output:
-        multiext(data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned", ".eigenvec", ".eigenval")
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
+                 ".eigenvec", ".eigenval")
     params:
-        base=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
+        base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
     conda:
         "envs/plink.yaml"
     threads: 32
@@ -762,10 +776,10 @@ rule perform_pca:
 
 rule plot_pca:
     input:
-        eigenvec = data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.eigenvec",
+        eigenvec = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.eigenvec",
         coords = data_path + "individual_geo_coords.tab"
     output:
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_pca.png"
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_pca.png"
     params:
         output_dir = results_path
     shell:
@@ -775,12 +789,12 @@ rule plot_pca:
 rule get_individual_coordinates:
     input:
         meta_sgdp = data_path + "SGDP/" + url_metadata_sgdp.split('/')[-1],
-        meta_tishkoff = data_path + geo_coords_tishkoff,
+        meta_crawford_and_scheinfeldt = data_path + geo_coords_crawford_and_scheinfeldt,
         meta_hollfelder = data_path + geo_coords_hollfelder,
         meta_arauna = data_path + geo_coords_arauna,
         meta_fortes_lima = data_path + geo_coords_fortes_lima,
         sgdp_fam = data_path + "SGDP/downsampled_updated_ids.fam",
-        tishkoff_fam = data_path + plink_prefix_tishkoff + "_downsampled.fam",
+        crawford_and_scheinfeldt_fam = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled.fam",
         hollfelder_fam = data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars.fam",
         arauna_fam = data_path + "arauna_et_al_2017_downsampled.fam",
         fortes_lima_fam = data_path + plink_prefix_fortes_lima + "_downsampled.fam"
@@ -789,8 +803,9 @@ rule get_individual_coordinates:
     shell:
         "cut -f2 {input.sgdp_fam} | xargs -I {{}} bash -c \"grep {{}} {input.meta_sgdp} | cut -f6,7\" | "
         "paste <(cut -f1,2 {input.sgdp_fam}) - > {output}; "
-        "cut -f2 {input.tishkoff_fam} | xargs -I {{}} bash -c \"grep {{}} {input.meta_tishkoff}\" | cut -f4,5 | "
-        "paste <(cut -f1,2 {input.tishkoff_fam}) - >> {output}; "
+        "cut -f2 {input.crawford_and_scheinfeldt_fam} | "
+        "xargs -I {{}} bash -c \"grep {{}} {input.meta_crawford_and_scheinfeldt}\" | cut -f4,5 | "
+        "paste <(cut -f1,2 {input.crawford_and_scheinfeldt_fam}) - >> {output}; "
         "cut -f1 {input.hollfelder_fam} | xargs -I {{}} bash -c \"grep {{}} {input.meta_hollfelder}\" | cut -f6,7 | "
         "paste <(cut -f1,2 {input.hollfelder_fam}) - >> {output}; "
         "cut -f1 {input.arauna_fam} | xargs -I {{}} bash -c \"grep -w {{}} {input.meta_arauna}\" | cut -d ' ' -f2,3 | "
@@ -800,77 +815,83 @@ rule get_individual_coordinates:
 
 rule run_admixture:
     input:
-        data_path +  "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
+        data_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
     output:
-        multiext(results_path +  "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}", '.Q', '.P', '.log')
+        multiext(results_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}",
+                 '.Q', '.P', '.log')
     params:
         data = data_path,
         results = results_path,
-        prefix = "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
+        prefix = "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
     threads: 32
     conda:
         "envs/admixture.yaml"
     shell:
-        "admixture --cv {input} {wildcards.K} -j{threads} > {params.prefix}.{wildcards.K}.log; mkdir -p {params.results}; "
+        "admixture --cv {input} {wildcards.K} -j{threads} > {params.prefix}.{wildcards.K}.log; "
+        "mkdir -p {params.results}; "
         "mv {params.prefix}.{wildcards.K}.* {params.results}"
+
+rule zip_q_files:
+    input:
+        expand(results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}.Q",K=K)
+    output:
+        results_path + "qfiles.zip"
+    params:
+        files = expand("crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}.Q",K=K),
+        results_path = results_path,
+        zip = "qfiles.zip"
+    shell:
+        "cd {params.results_path}; zip {params.zip} {params.files}"
+
+rule make_population_file_clumpak:
+    input:
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam"
+    output:
+        temp('populations.txt')
+    shell:
+        "cut -f1 {input} > {output}"
+
+rule align_admixture_results_across_k:
+    input:
+        clumpak_dir = url_clumpak.split('/')[-1].split('.zip')[0],
+        qfiles = results_path + "qfiles.zip",
+        pops = 'populations.txt'
+    output:
+        directory('results/clumpak')
+    conda:
+        "envs/clumpak.yaml"
+    shell:
+        "cd {input.clumpak_dir}; cpanm List::Permutor; "
+        "perl distructForManyKs.pl --id 1 --dir ../{output} --file ../{input.qfiles} "
+        "--inputtype admixture --indtopop ../{input.pops}"
 
 rule visualize_all_admixture_results:
     input:
-        expand(results_path +  "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}.Q", K=K)
+        clumpak = 'results/clumpak',
+        fam = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam",
+        coords= data_path + "individual_geo_coords.tab"
     output:
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot.pdf"
+        all=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plots.pdf",
+        best_k=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot_best_K.pdf",
+        kriging=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_kriging_best_K.pdf"
     params:
-        input_dir = results_path,
-        prefix = "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
-        metadata = data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam",
-        pop_coords = data_path + "individual_geo_coords.tab",
-        output_prefix = results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot"
+        results_path = results_path,
+        output_prefix = results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
     conda:
         "envs/admixture.yaml"
     shell:
-        "scripts/visualize_admixture.R -i {params.input_dir} -p {params.prefix} -m {params.metadata} "
-        "-c {params.pop_coords} -o {params.output_prefix}"
-
-rule visualize_specific_k:
-    input:
-        qfile = results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned." + str(K_to_plot) + ".Q",
-        fam = data_path +  "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam"
-    output:
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot_k" + str(K_to_plot) + ".pdf"
-    params:
-        results_path = results_path,
-        prefix = "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
-        k = K_to_plot
-    shell:
-        "scripts/plot_specific_K.py -q {input.qfile} -k {params.k} -f {input.fam} -p {params.results_path} "
-        "--prefix {params.prefix}"
-
-rule visualize_kriging_k:
-    input:
-        qfile = results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned." + str(K_to_plot) + ".Q",
-        fam = data_path +  "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam",
-        coords = data_path + "individual_geo_coords.tab"
-    output:
-        results_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_kriging_k" + str(K_to_plot) + ".pdf"
-    params:
-        results_path = results_path,
-        prefix = "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
-        k = K_to_plot
-    conda:
-        "envs/admixture.yaml"
-    shell:
-        "scripts/plot_admixture_kriging.py -q {input.qfile} -k {params.k} -f {input.fam} -p {params.results_path} "
-        "--prefix {params.prefix} -c {input.coords}"
+        "scripts/visualize_admixture.py -i {input.clumpak}/aligned.files/ -f {input.fam} -l {params.results_path} "
+        "-c {input.coords} -o {params.output_prefix}"
 
 rule run_feems:
     input:
         pop_coords = data_path + "individual_geo_coords.tab",
-        bed=data_path + "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
+        bed=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
     output:
-        results_path +  "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_feems_plot.pdf"
+        results_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_feems_plot.pdf"
     params:
         data_path = data_path,
-        prefix = "tishkoff_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
+        prefix = "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
         output_path = results_path
     threads: 1
     conda:

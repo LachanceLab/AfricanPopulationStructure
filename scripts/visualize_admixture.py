@@ -314,7 +314,7 @@ def plot_admixture_proportions(df, K, ax, cv, colors, min_k, best_k=False):
         ax.set_yticks([])
     else:
         ax.set_yticks(y_ticks)
-        ax.set_yticklabels([x.replace('Sabue', 'Chabu') for x in y_labels], fontsize=5)
+        ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('_', " ") for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.invert_yaxis()

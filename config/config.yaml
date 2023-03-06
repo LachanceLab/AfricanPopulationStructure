@@ -28,4 +28,4 @@ maf: 0.05
 geno: 0.1
 max_r2: 0.05
 min_K: 2
-max_K: 15
+max_K: 12

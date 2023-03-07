@@ -112,7 +112,7 @@ def get_best_k_and_plot_best_k(qfiles, Kvals, fam, log_dir, colors, path_to_coor
     # get order of idnviduals
     individual_order = df_sorted.index.values
     plot_best_k(df_sorted, best_k, min(cv_error), colors, prefix)
-    # plot_krigin_best_k(df, best_k, path_to_coords, vmin, colors, prefix)
+    plot_krigin_best_k(df, best_k, path_to_coords, vmin, colors, prefix)
     return individual_order, cv_error
 
 

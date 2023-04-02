@@ -75,7 +75,7 @@ def sort_individuals(df, K):
     return df
 
 
-def get_best_k_and_plot_best_k(qfiles, Kvals, fam, log_dir, colors, path_to_coords, vmin, prefix):
+def get_best_k_and_plot_best_k(qfiles, Kvals, fam, log_dir, colors, prefix):
     """
     Find best K across different ADMIXTURE runs using different K and plot admixture plot of best K separately
     :param qfiles: list, list of paths to aligned .Q files
@@ -83,8 +83,6 @@ def get_best_k_and_plot_best_k(qfiles, Kvals, fam, log_dir, colors, path_to_coor
     :param fam: df, pd.DataFrame of plink .fam file
     :param log_dir: str, path to directory with log files of ADMIXTURE runs
     :param colors: list, colors used for plotting
-    :param path_to_coords: str, path to file with individual geographic coordinates
-    :param vmin: float, minimum ancestry proportion to be considered during Kriging interpolation
     :param prefix: str, prefix of output figure "_admixture_plot_best_K.pdf" will be appended
     :return: array-like, array-like; order of individuals, cross-validation error
     """
@@ -110,19 +108,38 @@ def get_best_k_and_plot_best_k(qfiles, Kvals, fam, log_dir, colors, path_to_coor
     # sort individuals
     df_sorted = sort_individuals(df, best_k)
     # get order of idnviduals
-    individual_order = df_sorted.index.values
     plot_best_k(df_sorted, best_k, min(cv_error), colors, prefix)
-    plot_krigin_best_k(df, best_k, path_to_coords, vmin, colors, prefix)
-    return individual_order, cv_error
+    return cv_error
 
 
-def plot_krigin_best_k(df, K, path_to_coords, vmin, colors, prefix):
+def sort_individuals_specified_K(qfile, K, fam):
+    """
+    Sort individuals based on estimated ancestry proportions given a K
+    :param qfile: str, path to aligned Q file
+    :param K: int, K value
+    :param fam: df, pd.DataFrame of plink .fam file
+    :return: array-like,  order of individuals
+
+    """
+    df = pd.read_csv(qfile, sep=' ', header=None, index_col=None)
+    df = df.iloc[:, 6:]
+    df.columns = [i for i in range(K)]
+    df['population'] = fam.fid.values
+    # sort individuals
+    df_sorted = sort_individuals(df, K)
+    # get order of idnviduals
+    individual_order = df_sorted.index.values
+    return individual_order
+
+
+def plot_krigin(qfile, K, path_to_coords, vmin, fam, colors, prefix):
     """
     Interpolate admixture proportion in space using Kriging method
-    :param df: pd.DataFrame, sorted DataFrame with ancestry proportions
+    :param qfile: str, path to qfile corresponding to K
     :param K: int, K used for admixture run
     :param path_to_coords:
     :param vmin: float, minimum admixture proportion required for Kriging method
+    :param fam: df, pd.DataFrame of plink .fam file
     :param colors: list, colors used for plotting
     :param prefix: str, prefix for figure
     """
@@ -139,6 +156,10 @@ def plot_krigin_best_k(df, K, path_to_coords, vmin, colors, prefix):
     # read data
     coords = pd.read_csv(path_to_coords, sep='\t', header=None, names=['fid', 'lat', 'long'], usecols=[0, 2, 3])
     coords.drop_duplicates('fid', inplace=True)
+    df = pd.read_csv(qfile, sep=' ', header=None, index_col=None)
+    df = df.iloc[:, 6:]
+    df.columns = [i for i in range(K)]
+    df['population'] = fam.fid.values
     df = df.join(coords.set_index('fid'), on='population')
 
     # longitude and latidude coords of interest
@@ -159,7 +180,8 @@ def plot_krigin_best_k(df, K, path_to_coords, vmin, colors, prefix):
     ax.set_extent([-25, 60, -40, 50], crs=ccrs.PlateCarree())
 
     # run kriging for each K
-    perms = set(permutations([i for i in range(K)]))
+    perms = list(set(permutations([i for i in range(K - 1)])))
+    perms = [perm + (K-1,) for perm in perms]
     for perm in perms:
         for i in perm:
             cmap = cmaps[i]
@@ -229,7 +251,9 @@ def plot_best_k(df, K, cv, colors, prefix):
         prev_k.append(i)
     # formatting
     ax.set_yticks(y_ticks)
-    ax.set_yticklabels([x.replace('Sabue', 'Chabu') for x in y_labels], fontsize=5)
+    ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('_', " ").replace('Xun', '!Xun')\
+                       .replace('Juhoansi', "Ju|'Hoan").replace('SEBantu', 'BantuSAfrica')\
+                       .replace('SWBantu', 'Herero').replace('Haihom', 'Hai||om') for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.invert_yaxis()
@@ -259,16 +283,12 @@ def plot_all_k(qfiles, Kvals, cv_error, fam, individual_order, colors, prefix):
         df.columns = [i for i in range(K)]
         df['population'] = fam.fid.values
         df_sorted = df.loc[individual_order]
-        if cv == min(cv_error):
-            best_k = True
-        else:
-            best_k = False
-        plot_admixture_proportions(df_sorted, K, ax[K - min_k], cv, colors, min_k, best_k)
+        plot_admixture_proportions(df_sorted, K, ax[K - min_k], cv, colors, min_k)
     fig.savefig(prefix + "_admixture_plots.pdf", bbox_inches='tight', dpi=600)
     plt.close()
 
 
-def plot_admixture_proportions(df, K, ax, cv, colors, min_k, best_k=False):
+def plot_admixture_proportions(df, K, ax, cv, colors, min_k):
     """
     Helper to plot admixture proportions of for specific value of K
     :param df: pd.DataFrame, sorted DataFrame with ancestry proportions
@@ -277,7 +297,6 @@ def plot_admixture_proportions(df, K, ax, cv, colors, min_k, best_k=False):
     :param cv: float, CV error of ADMIXTURE run
     :param colors: list, list of colors to use
     :param min_k: int, minimum k that was used in any run
-    :param best_k: boolean, indicating whether it is the best K, if yes plot x label in bold
     :return: ax
     """
     populations = df.population.values
@@ -314,14 +333,14 @@ def plot_admixture_proportions(df, K, ax, cv, colors, min_k, best_k=False):
         ax.set_yticks([])
     else:
         ax.set_yticks(y_ticks)
-        ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('_', " ") for x in y_labels], fontsize=5)
+        ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('_', " ").replace('Xun', '!Xun')\
+                           .replace('Juhoansi', "Ju|'Hoan").replace('SEBantu', 'BantuSAfrica')\
+                           .replace('SWBantu', 'Herero').replace('Haihom', 'Hai||om')
+                            for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.invert_yaxis()
-    if best_k:
-        ax.set_xlabel(f"K={K}\nCV={round(cv, 4)}", fontsize=5, fontweight='bold')
-    else:
-        ax.set_xlabel(f"K={K}\nCV={round(cv, 4)}", fontsize=5)
+    ax.set_xlabel(f"K={K}\nCV={round(cv, 4)}", fontsize=5)
     ax.set_ylim([len(populations) + cumulative_padding - 0.5, -0.5])
     ax.set_xlim([0, 1])
     return ax
@@ -338,6 +357,7 @@ def main(argv):
     parser.add_argument('--vmin', type=float,
                         help='Only admixture proportions greater vmin are considered for Kriging method. default=0.5',
                         default=0.5)
+    parser.add_argument('-k', '--K_kriging', type=int, help='K to use for plotting Kriging')
     parser.add_argument('-o', '--output_prefix', help='Output prefix')
     args = parser.parse_args()
     input_dir = args.input_dir
@@ -358,14 +378,20 @@ def main(argv):
     max_k = max(Kvals)
 
     # initialize colors
-    colors = ["purple", "orange", "green", "blue"]
+    colors = ["purple", "orange", "blue", "green"]
     # pad colors
-    while max_k > len(colors):
-        colors.append((np.random.random(), np.random.random(), np.random.random()))
+    additional_colors = []
+    while max_k > len(colors) + len(additional_colors):
+        additional_colors.append((np.random.random(), np.random.random(), np.random.random()))
+        additional_colors = list(set(additional_colors))
+    colors.extend(additional_colors)
 
-    individual_order, cv_error = get_best_k_and_plot_best_k(aligned_q_files, Kvals, fam, log_dir, colors, args.coords,
-                                                            args.vmin, args.output_prefix)
+    cv_error = get_best_k_and_plot_best_k(aligned_q_files, Kvals, fam, log_dir, colors, args.output_prefix)
+    individual_order = sort_individuals_specified_K(aligned_q_files[np.where(Kvals == args.K_kriging)[0][0]],
+                                                    args.K_kriging, fam)
     plot_all_k(aligned_q_files, Kvals, cv_error, fam, individual_order, colors, args.output_prefix)
+    plot_krigin(aligned_q_files[np.where(Kvals == args.K_kriging)[0][0]], args.K_kriging, args.coords, args.vmin, fam,
+                colors, args.output_prefix)
 
 
 if __name__ == '__main__':

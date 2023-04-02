@@ -10,32 +10,37 @@ url_hollfelder = config['url_hollfelder']
 url_arauna_bim = config['url_arauna_bim']
 url_arauna_bed = config['url_arauna_bed']
 url_arauna_fam = config['url_arauna_fam']
-geo_coords_arauna = config['geo_coords_arauna']
+url_schlebusch_ped = config['url_schlebusch_ped']
+url_schlebusch_fam = config['url_schlebusch_fam']
 populations_of_interest_sgdp = config['populations_of_interest_sgdp']
 populations_to_exclude_hollfelder = config['populations_to_exclude_hollfelder']
+populations_to_exclude_schlebusch = config['populations_to_exclude_schlebusch']
 data_path =  config["data_path"]
 results_path = config['results_path']
 plink_prefix_crawford_and_scheinfeldt = config['plink_prefix_crawford_and_scheinfeldt']
+plink_prefix_fortes_lima = config['plink_prefix_fortes_lima']
+geo_coords_arauna = config['geo_coords_arauna']
 geo_coords_crawford_and_scheinfeldt = config['geo_coords_crawford_and_scheinfeldt']
 geo_coords_hollfelder = config['geo_coords_hollfelder']
-plink_prefix_fortes_lima = config['plink_prefix_fortes_lima']
 geo_coords_fortes_lima = config['geo_coords_fortes_lima']
+geo_coords_schlebusch = config['geo_coords_schlebusch']
 samples_downsampling = config['samples_downsampling']
 maf = config['maf'] # minor allele frequency
 geno = config['geno'] # max missing genotype rate per variant
 max_r2 = config['max_r2']
 K = np.arange(config['min_K'], config['max_K'] + 1)
+K_kriging = config['K_kriging']
 bcftools_path = config['bcftools_path']
 
 chromosomes = np.arange(1, 23)
 
 rule all:
     input:
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_pca.png",
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_feems_plot.pdf",
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plots.pdf",
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot_best_K.pdf",
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_kriging_best_K.pdf"
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_pca.png",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_feems_plot.pdf",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plots.pdf",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plot_best_K.pdf",
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_kriging_best_K.pdf"
 
 rule download_and_install_clumpak:
     output:
@@ -132,7 +137,7 @@ rule extract_samples_sgdp:
         output_base = data_path + "SGDP/ALL_samples_of_interest"
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     shell:
         "plink2 --bfile {params.input_base} --keep {input.samples} --make-bed --out {params.output_base} --threads {threads}"
 
@@ -159,7 +164,7 @@ rule update_sample_ids_sgdp:
         output_base=data_path + "SGDP/ALL_samples_of_interest_updated_ids"
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     shell:
         'plink2 --bfile {params.input_base} --update-ids {input.ids} --make-bed --out {params.output_base} '
         '--threads {threads}'
@@ -184,7 +189,7 @@ rule downsample_sgdp:
     params:
         input_base = data_path + "SGDP/ALL_samples_of_interest_updated_ids",
         output_base = data_path + "SGDP/downsampled_updated_ids"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -208,7 +213,7 @@ rule remove_samples_without_geo_data_crawford_and_scheinfeldt:
     params:
         input_base = data_path + plink_prefix_crawford_and_scheinfeldt,
         output_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_geo_avail"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -234,7 +239,7 @@ rule update_fids_crawford_and_scheinfeldt:
     params:
         input_base=data_path + plink_prefix_crawford_and_scheinfeldt + "_geo_avail",
         output_base=data_path + plink_prefix_crawford_and_scheinfeldt + "_updated_fids"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -265,7 +270,7 @@ rule downsample_crawford_and_scheinfeldt:
         output_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled"
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     shell:
         "plink2 --bfile {params.input_base} --keep {input.samples} --make-bed --out {params.output_base} "
         "--threads {threads}"
@@ -310,7 +315,7 @@ rule extract_samples_hollfelder:
     params:
         input_base = data_path + "Sudanfiles/Sudan",
         output_base = data_path+ "Sudanfiles/Sudan_downsampled"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -334,12 +339,69 @@ rule remove_duplicate_vars_hollfelder:
     params:
         input_base=data_path + "Sudanfiles/Sudan_downsampled",
         outputbase=data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
         "plink2 --bfile {params.input_base} --exclude {input.ids} --make-bed --out {params.outputbase} "
         "--threads {threads}"
+
+rule download_schlebusch:
+    output:
+        fam=temp(data_path + "schlebusch_et_al_2012.tfam"),
+        tped=temp(data_path + "schlebusch_et_al_2012.tped")
+    params:
+        url_tped = url_schlebusch_ped,
+        tped_file = data_path + url_schlebusch_ped.split('/')[-1].split('.tar.gz')[0],
+        url_fam = url_schlebusch_fam,
+        fam_file = data_path + url_schlebusch_fam.split('/')[-1],
+        data_path = data_path
+    shell:
+        "wget -q -P {params.data_path} {params.url_fam}; mv {params.fam_file} {output.fam}; "
+        "wget -q -P {params.data_path} {params.url_tped}; "
+        "tar -xzvf {params.tped_file}.tar.gz; mv {params.tped_file} {output.tped}; "
+        "rm {params.tped_file}.tar.gz; "
+
+rule recode_schlebusch_data:
+    input:
+        multiext(data_path + "schlebusch_et_al_2012", ".tped", ".tfam")
+    output:
+        multiext(data_path + "schlebusch_et_al_2012", ".bed", ".bim", ".fam")
+    conda:
+        'envs/plink.yaml'
+    params:
+        base = data_path + "schlebusch_et_al_2012"
+    threads: 16
+    shell:
+        "plink --tfile {params.base} --recode --make-bed --out {params.base} --threads {threads}"
+
+rule select_samples_schlebusch:
+    input:
+        fam=data_path + "schlebusch_et_al_2012.fam"
+    output:
+        temp("schlebusch_to_keep.txt")
+    params:
+        exclude = "|".join(populations_to_exclude_schlebusch),
+        n_samples = samples_downsampling
+    shell:
+        "cut -d ' ' -f1 {input.fam} | sort | uniq | xargs -I {{}} bash -c \"grep {{}} {input.fam} | cut -d ' ' -f1,2 | "
+        "shuf -n {params.n_samples}\" bash | grep -v -E \"{params.exclude}\" > {output}"
+
+rule extract_samples_schlebusch:
+    input:
+        to_keep="schlebusch_to_keep.txt",
+        plink=multiext(data_path + "schlebusch_et_al_2012", ".bed", ".bim", ".fam")
+    output:
+        multiext(data_path + "schlebusch_et_al_2012_downsampled",".bed",".bim",".fam")
+    conda:
+        'envs/plink.yaml'
+    params:
+        input_base=data_path + "schlebusch_et_al_2012",
+        output_base=data_path + "schlebusch_et_al_2012_downsampled"
+    threads: 16
+    shell:
+        "plink2 --bfile {params.input_base} --keep {input.to_keep} --make-bed --set-all-var-ids @:# "
+        "--snps-only --max-alleles 2 --out {params.output_base} --threads {threads}"
 
 rule download_arauna:
     output:
@@ -379,7 +441,7 @@ rule extract_samples_arauna:
     params:
         input_base=data_path + 'arauna_et_al_2017',
         output_base=data_path + 'arauna_et_al_2017_downsampled'
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -404,7 +466,7 @@ use rule extract_samples_arauna as extract_samples_fortes_lima with:
     params:
         input_base=data_path + plink_prefix_fortes_lima,
         output_base=data_path + plink_prefix_fortes_lima + '_downsampled'
-    threads: 32
+    threads: 16
 
 rule get_variants_crawford_and_scheinfeldt:
     input:
@@ -439,7 +501,7 @@ rule extract_shared_snps_crawford_and_scheinfeldt:
     params:
         input_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled",
         output_base = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled_intersected_snps"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -470,7 +532,7 @@ rule merge_crawford_and_scheinfeldt_and_sgdp_data:
         geno = geno
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     retries: 2
     shell:
         "if [[ -f {params.output_base}_trial1-merge.missnp ]]; " # second trial --> flip SNPs once
@@ -523,7 +585,7 @@ rule filter_at_cg_snps_merged:
     params:
         input_base = data_path+ "crawford_and_scheinfeldt_sgdp_merged",
         output_base = data_path+ "crawford_and_scheinfeldt_sgdp_merged_filtered_at_cg"
-    threads: 32
+    threads: 16
     conda:
         "envs/plink.yaml"
     shell:
@@ -593,7 +655,8 @@ use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_sche
         output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_merged",
         maf= maf,
         geno= geno
-    threads: 32
+    threads: 16
+
 
 rule get_snps_arauna:
     input:
@@ -656,7 +719,7 @@ use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_sche
         output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged",
         maf= maf,
         geno= geno
-    threads: 32
+    threads: 16
 
 rule get_snps_fortes_lima:
     input:
@@ -694,7 +757,7 @@ use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_for
     params:
         input_base=data_path + plink_prefix_fortes_lima + "_downsampled",
         output_base=data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna"
-    threads: 32
+    threads: 16
 
 use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima with:
     input:
@@ -706,7 +769,7 @@ use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_cra
     params:
         input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged",
         output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima"
-    threads: 32
+    threads: 16
 
 use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_and_fortes_lima_data with:
     input:
@@ -716,70 +779,137 @@ use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_sche
         multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
                  ".bed", ".bim", ".fam")
     output:
-        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
-                 ".bim", ".bed", ".fam")
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+            ".bim", ".bed", ".fam"))
     params:
         base_a = data_path + plink_prefix_fortes_lima + "_downsampled_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna",
         base_b = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_merged_intersected_snps_fortes_lima",
         output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
         maf= maf,
         geno= geno
-    threads: 32
+    threads: 16
+
+rule get_snps_schlebusch:
+    input:
+        data_path + "schlebusch_et_al_2012_downsampled.bim"
+    output:
+        temp("snps_schlebusch.txt")
+    shell:
+        "cut -f2 {input} | sort > {output}"
+
+rule get_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima:
+    input:
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.bim"
+    output:
+        temp("crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.txt")
+    shell:
+        "cut -f2 {input} | sort > {output}"
+
+rule intersect_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_and_schlebusch:
+    input:
+        "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.txt",
+        "snps_schlebusch.txt"
+    output:
+        temp("intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_and_schlebusch.txt")
+    shell:
+        "comm -12 {input} > {output}"
+
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_schlebusch_and_fortes_lima_crawford_and_scheinfeldt_sgdp_hollfelder_arauna with:
+    input:
+        bed = data_path + "schlebusch_et_al_2012_downsampled.bed",
+        snps = 'intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_and_schlebusch.txt'
+    output:
+        temp(multiext(data_path +
+                      "schlebusch_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima",
+            ".bed",".bim",".fam"))
+    params:
+        input_base=data_path + "schlebusch_et_al_2012_downsampled",
+        output_base=data_path + "schlebusch_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima"
+    threads: 16
+
+use rule extract_shared_snps_crawford_and_scheinfeldt as extract_shared_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_and_schlebusch with:
+    input:
+        plink = multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged", ".bim", ".bed", ".fam"),
+        snps = 'intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_and_schlebusch.txt'
+    output:
+        temp(multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_intersected_snps_schlebusch",
+                      ".bed",".bim",".fam"))
+    params:
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+        output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_intersected_snps_schlebusch"
+    threads: 16
+
+use rule merge_crawford_and_scheinfeldt_and_sgdp_data as merge_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_and_schlebusch_data with:
+    input:
+        multiext(data_path + "schlebusch_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima",
+                 ".bed", ".bim", ".fam"),
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_intersected_snps_schlebusch",
+                 ".bed", ".bim", ".fam")
+    output:
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged",
+                 ".bim", ".bed", ".fam")
+    params:
+        base_a = data_path + "schlebusch_intersected_snps_crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima",
+        base_b = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_intersected_snps_schlebusch",
+        output_base = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged",
+        maf= maf,
+        geno= geno
+    threads: 16
 
 rule find_snps_in_ld:
     input:
-        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged",
                  ".bed", ".bim", ".fam")
     output:
-        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged",
                  ".prune.in", ".prune.out",)
     params:
-        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged",
         max_r2 = max_r2
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     shell:
         "plink2 --bfile {params.input_base} --indep-pairwise 50 1 {params.max_r2} --out {params.input_base} "
         "--threads {threads}"
 
 rule ld_prune:
     input:
-        extract=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.prune.in",
-        bed=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged.bed"
+        extract=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged.prune.in",
+        bed=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged.bed"
     output:
-        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned",
                  ".bed", ".bim", ".fam")
     params:
-        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged",
-        output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
+        input_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged",
+        output_base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned"
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     shell:
         "plink2 --bfile {params.input_base} --extract {input.extract} --make-bed --out {params.output_base} "
         "--threads {threads}"
 
 rule perform_pca:
     input:
-        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.bed"
     output:
-        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
+        multiext(data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned",
                  ".eigenvec", ".eigenval")
     params:
-        base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
+        base=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned"
     conda:
         "envs/plink.yaml"
-    threads: 32
+    threads: 16
     shell:
         "plink2 --bfile {params.base} --pca 20 --out {params.base} --threads {threads}"
 
 rule plot_pca:
     input:
-        eigenvec = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.eigenvec",
+        eigenvec = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.eigenvec",
         coords = data_path + "individual_geo_coords.tab"
     output:
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_pca.png"
+        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_pca.png"
     params:
         output_dir = results_path
     shell:
@@ -793,11 +923,13 @@ rule get_individual_coordinates:
         meta_hollfelder = data_path + geo_coords_hollfelder,
         meta_arauna = data_path + geo_coords_arauna,
         meta_fortes_lima = data_path + geo_coords_fortes_lima,
+        meta_schlebusch = data_path + geo_coords_schlebusch,
         sgdp_fam = data_path + "SGDP/downsampled_updated_ids.fam",
         crawford_and_scheinfeldt_fam = data_path + plink_prefix_crawford_and_scheinfeldt + "_downsampled.fam",
         hollfelder_fam = data_path + "Sudanfiles/Sudan_downsampled_rm_dup_vars.fam",
         arauna_fam = data_path + "arauna_et_al_2017_downsampled.fam",
-        fortes_lima_fam = data_path + plink_prefix_fortes_lima + "_downsampled.fam"
+        fortes_lima_fam = data_path + plink_prefix_fortes_lima + "_downsampled.fam",
+        schlebusch_fam = data_path + "schlebusch_et_al_2012_downsampled.fam",
     output:
         data_path + "individual_geo_coords.tab"
     shell:
@@ -811,19 +943,21 @@ rule get_individual_coordinates:
         "cut -f1 {input.arauna_fam} | xargs -I {{}} bash -c \"grep -w {{}} {input.meta_arauna}\" | cut -d ' ' -f2,3 | "
         "paste <(cut -f1,2 {input.arauna_fam}) - | sed -e 's/\\s/\\t/g' >> {output}; "
         "cut -f1 {input.fortes_lima_fam} | xargs -I {{}} bash -c \"grep -w {{}} {input.meta_fortes_lima}\" | "
-        "cut -d ' ' -f2,3 | paste <(cut -f1,2 {input.fortes_lima_fam}) - | sed -e 's/\\s/\\t/g' >> {output}"
+        "cut -d ' ' -f2,3 | paste <(cut -f1,2 {input.fortes_lima_fam}) - | sed -e 's/\\s/\\t/g' >> {output}; "
+        "cut -f1 {input.schlebusch_fam} | xargs -I {{}} bash -c \"grep -w {{}} {input.meta_schlebusch}\" | "
+        "cut -d ' ' -f2,3 | paste <(cut -f1,2 {input.schlebusch_fam}) - | sed -e 's/\\s/\\t/g' >> {output}; "
 
 rule run_admixture:
     input:
-        data_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
+        data_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.bed"
     output:
-        multiext(results_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}",
+        multiext(results_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.{K}",
                  '.Q', '.P', '.log')
     params:
         data = data_path,
         results = results_path,
-        prefix = "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
-    threads: 32
+        prefix = "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned"
+    threads: 16
     conda:
         "envs/admixture.yaml"
     shell:
@@ -833,11 +967,11 @@ rule run_admixture:
 
 rule zip_q_files:
     input:
-        expand(results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}.Q",K=K)
+        expand(results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.{K}.Q",K=K)
     output:
         results_path + "qfiles.zip"
     params:
-        files = expand("crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.{K}.Q",K=K),
+        files = expand("crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.{K}.Q",K=K),
         results_path = results_path,
         zip = "qfiles.zip"
     shell:
@@ -845,7 +979,7 @@ rule zip_q_files:
 
 rule make_population_file_clumpak:
     input:
-        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam"
+        data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.fam"
     output:
         temp('populations.txt')
     shell:
@@ -868,30 +1002,31 @@ rule align_admixture_results_across_k:
 rule visualize_all_admixture_results:
     input:
         clumpak = 'results/clumpak',
-        fam = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.fam",
+        fam = data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.fam",
         coords= data_path + "individual_geo_coords.tab"
     output:
-        all=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plots.pdf",
-        best_k=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_plot_best_K.pdf",
-        kriging=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_admixture_kriging_best_K.pdf"
+        all=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plots.pdf",
+        best_k=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plot_best_K.pdf",
+        kriging=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_kriging_best_K.pdf"
     params:
         results_path = results_path,
-        output_prefix = results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned"
+        output_prefix = results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned",
+        K_kriging = K_kriging
     conda:
         "envs/admixture.yaml"
     shell:
         "scripts/visualize_admixture.py -i {input.clumpak}/aligned.files/ -f {input.fam} -l {params.results_path} "
-        "-c {input.coords} -o {params.output_prefix}"
+        "-c {input.coords} -k {params.K_kriging} -o {params.output_prefix}"
 
 rule run_feems:
     input:
         pop_coords = data_path + "individual_geo_coords.tab",
-        bed=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned.bed"
+        bed=data_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned.bed"
     output:
-        results_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned_feems_plot.pdf"
+        results_path +  "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_feems_plot.pdf"
     params:
         data_path = data_path,
-        prefix = "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_merged_ld_pruned",
+        prefix = "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned",
         output_path = results_path
     threads: 1
     conda:

@@ -251,9 +251,12 @@ def plot_best_k(df, K, cv, colors, prefix):
         prev_k.append(i)
     # formatting
     ax.set_yticks(y_ticks)
-    ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('_', " ").replace('Xun', '!Xun')\
-                       .replace('Juhoansi', "Ju|'Hoan").replace('SEBantu', 'BantuSAfrica')\
-                       .replace('SWBantu', 'Herero').replace('Haihom', 'Hai||om') for x in y_labels], fontsize=5)
+    ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('Xun', '!Xun').replace('_ERR_', "_Errachidia_")\
+                        .replace('Juhoansi', "Ju|'Hoan").replace('SEBantu', 'BantuSAfrica')\
+                        .replace('SWBantu', 'Herero').replace('Haihom', 'Hai||om').replace("_TIZ_", "_Tiznit_")\
+                        .replace('_Sen_', '_Sened_').replace('_Chen_', '_Chenini_').replace('_', " ")\
+                        .replace("BER", "Berber")
+                        for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.invert_yaxis()
@@ -333,9 +336,11 @@ def plot_admixture_proportions(df, K, ax, cv, colors, min_k):
         ax.set_yticks([])
     else:
         ax.set_yticks(y_ticks)
-        ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('_', " ").replace('Xun', '!Xun')\
+        ax.set_yticklabels([x.replace('Sabue', 'Chabu').replace('Xun', '!Xun').replace('_ERR_', "_Errachidia_")\
                            .replace('Juhoansi', "Ju|'Hoan").replace('SEBantu', 'BantuSAfrica')\
-                           .replace('SWBantu', 'Herero').replace('Haihom', 'Hai||om')
+                           .replace('SWBantu', 'Herero').replace('Haihom', 'Hai||om').replace("_TIZ_", "_Tiznit_")\
+                           .replace('_Sen_', '_Sened_').replace('_Chen_', '_Chenini_').replace('_', " ")\
+                           .replace("BER", "Berber")
                             for x in y_labels], fontsize=5)
     ax.set_xticks([])
     ax.set_xticklabels([])

@@ -40,7 +40,9 @@ rule all:
         results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_feems_plot.pdf",
         results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plots.pdf",
         results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plot_best_K.pdf",
-        results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_kriging_best_K.pdf"
+        expand(results_path +
+               "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_kriging_K{K}.pdf",
+               K=K_kriging)
 
 rule download_and_install_clumpak:
     output:
@@ -1007,11 +1009,11 @@ rule visualize_all_admixture_results:
     output:
         all=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plots.pdf",
         best_k=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_plot_best_K.pdf",
-        kriging=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_kriging_best_K.pdf"
+        kriging=results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned_admixture_kriging_K{K_kriging}.pdf"
     params:
         results_path = results_path,
         output_prefix = results_path + "crawford_and_scheinfeldt_sgdp_hollfelder_arauna_fortes_lima_schlebusch_merged_ld_pruned",
-        K_kriging = K_kriging
+        K_kriging ="{K_kriging}"
     conda:
         "envs/admixture.yaml"
     shell:

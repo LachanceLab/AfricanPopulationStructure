@@ -207,7 +207,7 @@ def plot_krigin(qfile, K, path_to_coords, vmin, fam, colors, prefix):
     # plot populations
     ax.scatter(coords.long, coords.lat, color='black', s=8)
     ax.axis('off')
-    fig.savefig(f"{prefix}_admixture_kriging_best_K.pdf", bbox_inches='tight', dpi=600)
+    fig.savefig(f"{prefix}_admixture_kriging_K{K}.pdf", bbox_inches='tight', dpi=600)
 
 
 def plot_best_k(df, K, cv, colors, prefix):
